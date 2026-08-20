@@ -1,0 +1,68 @@
+[
+  {
+    "id": "shimla-kufri",
+    "name": "Shimla–Kufri stretch (NH5)",
+    "lat": 31.0864,
+    "lon": 77.2673,
+    "slope": 34,
+    "rainfall": 85,
+    "soilMoisture": 0.6,
+    "riskScore": 48.6,
+    "action": "Increase monitoring, alert local authorities"
+  },
+  {
+    "id": "kullu-manali",
+    "name": "Kullu–Manali stretch (NH3)",
+    "lat": 31.9578,
+    "lon": 77.1734,
+    "slope": 41,
+    "rainfall": 120,
+    "soilMoisture": 0.8,
+    "riskScore": 68.3,
+    "action": "Increase monitoring, alert local authorities"
+  },
+  {
+    "id": "rishikesh-devprayag",
+    "name": "Rishikesh–Devprayag stretch (NH58)",
+    "lat": 30.1461,
+    "lon": 78.5921,
+    "slope": 38,
+    "rainfall": 150,
+    "soilMoisture": 0.9,
+    "riskScore": 74.1,
+    "action": "Recommend road closure or heavy vehicle restriction"
+  },
+  {
+    "id": "joshimath-badrinath",
+    "name": "Joshimath–Badrinath stretch (NH58)",
+    "lat": 30.5546,
+    "lon": 79.5643,
+    "slope": 45,
+    "rainfall": 180,
+    "soilMoisture": 0.95,
+    "riskScore": 85.3,
+    "action": "Recommend road closure or heavy vehicle restriction"
+  },
+  {
+    "id": "chamoli-gopeshwar",
+    "name": "Chamoli–Gopeshwar stretch",
+    "lat": 30.4167,
+    "lon": 79.3333,
+    "slope": 29,
+    "rainfall": 40,
+    "soilMoisture": 0.4,
+    "riskScore": 36.3,
+    "action": "Monitor routinely"
+  },
+  {
+    "id": "mandi-kullu",
+    "name": "Mandi–Kullu stretch (NH21)",
+    "lat": 31.5892,
+    "lon": 77.0378,
+    "slope": 26,
+    "rainfall": 30,
+    "soilMoisture": 0.35,
+    "riskScore": 31.3,
+    "action": "Monitor routinely"
+  }
+]
