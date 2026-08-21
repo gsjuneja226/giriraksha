@@ -3,6 +3,12 @@ import { calculateRisk, getRiskAction } from '@/lib/risk-calculator';
 import { apiCache } from '@/lib/cache';
 import fallbackData from '@/data/demo_fallback.json';
 import axios from 'axios';
+import { z } from 'zod';
+
+const coordinateSchema = z.object({
+  lat: z.number().min(6.7).max(37.6), // Rough bounds of India
+  lon: z.number().min(68.7).max(97.25)
+});
 
 // Calculate distance between two lat/lon points
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -22,15 +28,19 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const latStr = searchParams.get('lat');
-  const lonStr = searchParams.get('lon');
+  
+  const parsed = coordinateSchema.safeParse({
+    lat: parseFloat(searchParams.get('lat') || ''),
+    lon: parseFloat(searchParams.get('lon') || '')
+  });
 
-  if (!latStr || !lonStr) {
-    return NextResponse.json({ error: 'lat and lon are required' }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ 
+      error: 'Invalid coordinates. Must be within India bounds.' 
+    }, { status: 400 });
   }
 
-  const lat = parseFloat(latStr);
-  const lon = parseFloat(lonStr);
+  const { lat, lon } = parsed.data;
   
   // Round to 3 decimal places for caching (~111m precision)
   const cacheKey = `risk_${lat.toFixed(3)}_${lon.toFixed(3)}`;
@@ -94,10 +104,38 @@ export async function GET(request: Request) {
     const totalRainfall = dailyPrecip.reduce((a: number, b: number) => a + (b || 0), 0);
     
     // Get latest soil moisture
-    // Find the current hour index or use the last available
     const moisture = hourlyMoisture.filter((m: number) => m !== null).pop() || 0.5;
 
-    const riskScore = calculateRisk(slopeDegrees, totalRainfall, moisture);
+    // POST to ML Engine instead of calculating locally
+    const mlResponse = await axios.post('http://localhost:8000/predict', {
+      lat,
+      lon,
+      rainfall_72h: totalRainfall,
+      soil_moisture: moisture
+    }, timeoutConfig).catch(e => {
+      console.warn("ML Engine not reachable, falling back to local heuristic.", e.message);
+      return null;
+    });
+
+    let riskScore;
+    let mlData = {};
+
+    if (mlResponse && mlResponse.data) {
+      riskScore = mlResponse.data.probability_of_failure;
+      mlData = {
+        geology: mlResponse.data.geology,
+        terrain: mlResponse.data.terrain,
+        vegetation: mlResponse.data.vegetation
+      };
+    } else {
+      // Fallback heuristic if Python server isn't running
+      riskScore = calculateRisk(slopeDegrees, totalRainfall, moisture);
+    }
+
+    let isWaterBody = false;
+    if (centerElev <= 0 && slopeDegrees < 2) {
+      isWaterBody = true;
+    }
 
     const result = {
       lat,
@@ -106,7 +144,9 @@ export async function GET(request: Request) {
       rainfall: Math.round(totalRainfall * 10) / 10,
       soilMoisture: Math.round(moisture * 100) / 100,
       riskScore,
-      action: getRiskAction(riskScore),
+      action: isWaterBody ? (riskScore > 50 ? "TSUNAMI/FLOOD WARNING" : "Safe Waterbody") : getRiskAction(riskScore),
+      riskType: isWaterBody ? "Flood/Tsunami" : "Landslide",
+      ...mlData,
       timestamp: new Date().toISOString()
     };
 

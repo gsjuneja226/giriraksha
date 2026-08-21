@@ -17,22 +17,28 @@ export async function GET(request: Request) {
   }
 
   try {
-    const res = await axios.get(`https://nominatim.openstreetmap.org/search`, {
+    // Photon is a much more reliable, free geocoding API than Nominatim (no strict User-Agent blocks)
+    const res = await axios.get(`https://photon.komoot.io/api/`, {
       params: {
-        q: `${q}, India`,
-        format: 'json',
+        q: q,
         limit: 5,
+        lat: 22.0, // bias towards India
+        lon: 79.0,
       },
-      headers: {
-        'User-Agent': 'GiriRaksha-Hackathon-App/1.0 (contact@example.com)'
-      },
-      timeout: 3000
+      timeout: 5000
     });
 
-    apiCache.set(cacheKey, res.data);
-    return NextResponse.json(res.data);
+    // Map Photon GeoJSON format to the format our UI expects (Nominatim format)
+    const formattedResults = res.data.features.map((f: any) => ({
+      display_name: [f.properties.name, f.properties.state, f.properties.country].filter(Boolean).join(', '),
+      lat: f.geometry.coordinates[1],
+      lon: f.geometry.coordinates[0],
+    }));
+
+    apiCache.set(cacheKey, formattedResults);
+    return NextResponse.json(formattedResults);
   } catch (error) {
-    console.error("Nominatim API failed", error);
-    return NextResponse.json([], { status: 500 });
+    console.error("Photon API failed, returning empty results.", error);
+    return NextResponse.json([]);
   }
 }

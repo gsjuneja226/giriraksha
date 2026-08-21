@@ -31,7 +31,26 @@ const createCustomIcon = (score: number) => {
   });
 };
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { get, set } from 'idb-keyval';
+
+const fetcher = async (url: string) => {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Network response was not ok');
+    const data = await res.json();
+    
+    // Cache the successful response in IndexedDB for offline use
+    await set(url, data);
+    return data;
+  } catch (error) {
+    console.warn("Fetch failed, attempting to read from IndexedDB fallback...", error);
+    const cachedData = await get(url);
+    if (cachedData) {
+      return { ...cachedData, isFallback: true, offlineSource: 'IndexedDB' };
+    }
+    throw error;
+  }
+};
 
 function MapEvents({ onLocationSelect }: { onLocationSelect: (lat: number, lon: number) => void }) {
   useMapEvents({
